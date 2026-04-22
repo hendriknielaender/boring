@@ -1,0 +1,161 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+env:
+  ZIG_VERSION: 0.16.0
+
+jobs:
+  style:
+    name: fmt and style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Check Zig formatting
+        run: zig build fmt-check
+
+  test:
+    name: test ${{ matrix.os }} ${{ matrix.optimize }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            optimize: Debug
+          - os: ubuntu-latest
+            optimize: ReleaseSafe
+          - os: macos-latest
+            optimize: Debug
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ">=1.22.0"
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .zig-cache
+            zig-out
+          key: zig-${{ runner.os }}-${{ matrix.optimize }}-${{ hashFiles('build.zig.zon') }}
+      - name: Run tests
+        run: zig build -Doptimize=${{ matrix.optimize }} test
+      - name: Compile default checks
+        run: zig build -Doptimize=${{ matrix.optimize }}
+
+  http2-boring:
+    name: http2-boring
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/checkout@v6
+        with:
+          repository: hendriknielaender/http2.zig
+          path: external/http2.zig
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ">=1.22.0"
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .zig-cache
+            http2-boring/.zig-cache
+          key: http2-boring-${{ runner.os }}-${{ hashFiles('build.zig.zon') }}
+      - name: Check adapter formatting
+        working-directory: http2-boring
+        run: zig build -Dhttp2-root=../external/http2.zig fmt-check
+      - name: Run adapter tests
+        working-directory: http2-boring
+        run: zig build -Dhttp2-root=../external/http2.zig test
+
+  fips:
+    name: FIPS source build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ">=1.22.0"
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Install FIPS toolchain packages
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build
+      - uses: actions/cache@v4
+        with:
+          path: .zig-cache
+          key: fips-${{ runner.os }}-${{ hashFiles('build.zig.zon') }}
+      - name: Compile FIPS source build
+        run: zig build -Dboringssl-fips=true check
+
+  build-options:
+    name: build options
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ">=1.22.0"
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: .zig-cache
+          key: options-${{ runner.os }}-${{ hashFiles('build.zig.zon') }}
+      - name: Check explicit source path
+        run: zig build -Dboringssl-source-path=deps/boringssl check
+      - name: Check explicit CMake build type
+        run: zig build -Dboringssl-cmake-build-type=Release check
+      - name: Check patch option guard
+        shell: bash
+        run: |
+          if zig build -Dboringssl-mlkem-patch=true check; then
+            echo "expected patched source guard to fail" >&2
+            exit 1
+          fi
+      - name: Check patch header guard
+        shell: bash
+        run: |
+          flags=(
+            boringssl-mlkem-patch
+            boringssl-rpk-patch
+            boringssl-underscore-wildcards-patch
+          )
+
+          for flag in "${flags[@]}"; do
+            if zig build -Dboringssl-source-path=deps/boringssl -D"${flag}=true" check; then
+              echo "expected patched header guard to fail for ${flag}" >&2
+              exit 1
+            fi
+          done

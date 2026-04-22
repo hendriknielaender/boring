@@ -1,0 +1,7 @@
+.DS_Store
+.zig-cache/
+zig-cache/
+zig-out/
+
+*.o
+test_sock.o
