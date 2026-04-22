@@ -302,9 +302,9 @@ fn add_tests(
     fixed_bytes_module: *Module,
     fips: bool,
 ) void {
-    // BoringSSL's generated FIPS module object currently trips Zig's ELF
-    // linker and LLD, so use the host linker for Linux FIPS checks.
-    const use_lld: ?bool = if (fips and target.result.os.tag == .linux) false else null;
+    // BoringSSL's generated FIPS module object currently trips Zig's Linux
+    // linkers when the full wrapper test binary pulls in libcrypto's bcm.o.
+    const skip_full_boring_tests = fips and target.result.os.tag == .linux;
     const fixed_bytes_tests = b.addTest(.{ .root_module = fixed_bytes_module });
 
     const sys_test_module = b.createModule(.{
@@ -314,35 +314,33 @@ fn add_tests(
     });
     sys_test_module.addImport("boringssl", boringssl_module);
 
-    const boring_test_module = b.createModule(.{
-        .root_source_file = b.path("test/boring.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    boring_test_module.addImport("boring", boring_module);
-
-    const sys_tests = b.addTest(.{
-        .root_module = sys_test_module,
-        .use_lld = use_lld,
-    });
-    const boring_tests = b.addTest(.{
-        .root_module = boring_test_module,
-        .use_lld = use_lld,
-    });
+    const sys_tests = b.addTest(.{ .root_module = sys_test_module });
     const run_fixed_bytes_tests = b.addRunArtifact(fixed_bytes_tests);
     const run_sys_tests = b.addRunArtifact(sys_tests);
-    const run_boring_tests = b.addRunArtifact(boring_tests);
 
     const check_step = b.step("check", "Compile BoringSSL binding smoke tests");
     check_step.dependOn(&fixed_bytes_tests.step);
     check_step.dependOn(&sys_tests.step);
-    check_step.dependOn(&boring_tests.step);
-    b.default_step.dependOn(check_step);
 
     const test_step = b.step("test", "Run BoringSSL binding smoke tests");
     test_step.dependOn(&run_fixed_bytes_tests.step);
     test_step.dependOn(&run_sys_tests.step);
-    test_step.dependOn(&run_boring_tests.step);
+
+    if (!skip_full_boring_tests) {
+        const boring_test_module = b.createModule(.{
+            .root_source_file = b.path("test/boring.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        boring_test_module.addImport("boring", boring_module);
+
+        const boring_tests = b.addTest(.{ .root_module = boring_test_module });
+        const run_boring_tests = b.addRunArtifact(boring_tests);
+        check_step.dependOn(&boring_tests.step);
+        test_step.dependOn(&run_boring_tests.step);
+    }
+
+    b.default_step.dependOn(check_step);
 }
 
 fn add_format_steps(b: *Build) void {
