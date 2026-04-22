@@ -1,5 +1,8 @@
 # boring
 
+> [!WARNING]  
+> Still work in progress.
+
 BoringSSL bindings for Zig.
 
 - `boringssl` is the raw `translate-c` module. It owns the BoringSSL source pin,
