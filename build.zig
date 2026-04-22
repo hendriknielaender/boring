@@ -302,7 +302,9 @@ fn add_tests(
     fixed_bytes_module: *Module,
     fips: bool,
 ) void {
-    const use_lld: ?bool = if (fips and target.result.os.tag == .linux) true else null;
+    // BoringSSL's generated FIPS module object currently trips Zig's ELF
+    // linker and LLD, so use the host linker for Linux FIPS checks.
+    const use_lld: ?bool = if (fips and target.result.os.tag == .linux) false else null;
     const fixed_bytes_tests = b.addTest(.{ .root_module = fixed_bytes_module });
 
     const sys_test_module = b.createModule(.{
