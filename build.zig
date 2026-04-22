@@ -140,7 +140,15 @@ pub fn build(b: *Build) void {
     boring_module.addImport("fixed_bytes", fixed_bytes_module);
     boring_module.addImport("mlkem_impl", mlkem_module);
 
-    add_tests(b, target, optimize, boringssl_module, boring_module, fixed_bytes_module);
+    add_tests(
+        b,
+        target,
+        optimize,
+        boringssl_module,
+        boring_module,
+        fixed_bytes_module,
+        options.fips,
+    );
     add_format_steps(b);
 }
 
@@ -292,7 +300,9 @@ fn add_tests(
     boringssl_module: *Module,
     boring_module: *Module,
     fixed_bytes_module: *Module,
+    fips: bool,
 ) void {
+    const use_lld: ?bool = if (fips and target.result.os.tag == .linux) true else null;
     const fixed_bytes_tests = b.addTest(.{ .root_module = fixed_bytes_module });
 
     const sys_test_module = b.createModule(.{
@@ -309,8 +319,14 @@ fn add_tests(
     });
     boring_test_module.addImport("boring", boring_module);
 
-    const sys_tests = b.addTest(.{ .root_module = sys_test_module });
-    const boring_tests = b.addTest(.{ .root_module = boring_test_module });
+    const sys_tests = b.addTest(.{
+        .root_module = sys_test_module,
+        .use_lld = use_lld,
+    });
+    const boring_tests = b.addTest(.{
+        .root_module = boring_test_module,
+        .use_lld = use_lld,
+    });
     const run_fixed_bytes_tests = b.addRunArtifact(fixed_bytes_tests);
     const run_sys_tests = b.addRunArtifact(sys_tests);
     const run_boring_tests = b.addRunArtifact(boring_tests);
