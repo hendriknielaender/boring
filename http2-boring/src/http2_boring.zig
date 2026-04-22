@@ -94,15 +94,7 @@ pub const Connection = struct {
     ) !u32 {
         std.debug.assert(self.state == .tls);
 
-        return http2.serveConnection(
-            allocator,
-            self.reader(),
-            self.writer(),
-            .{
-                .dispatcher = options.dispatcher,
-                .stream_storage = options.stream_storage,
-            },
-        );
+        return serveHttp2Connection(allocator, self.reader(), self.writer(), options);
     }
 
     pub fn read(self: *Connection, output: []u8) boring.BoringError!usize {
@@ -166,6 +158,43 @@ pub const Connection = struct {
         self.tls_writer = self.tls_stream.writer(&self.tls_writer_buffer);
     }
 };
+
+fn serveHttp2Connection(
+    allocator: std.mem.Allocator,
+    reader: *std.Io.Reader,
+    writer: *std.Io.Writer,
+    options: ServeConnectionOptions,
+) !u32 {
+    if (@hasDecl(http2, "serveConnection")) {
+        return http2.serveConnection(
+            allocator,
+            reader,
+            writer,
+            .{
+                .dispatcher = options.dispatcher,
+                .stream_storage = options.stream_storage,
+            },
+        );
+    }
+
+    var connection: http2.Connection = undefined;
+    if (options.stream_storage) |stream_storage| {
+        try http2.Connection.initServerInPlace(
+            &connection,
+            stream_storage,
+            allocator,
+            reader,
+            writer,
+        );
+    } else {
+        connection = try http2.Connection.init(allocator, reader, writer, true);
+    }
+    defer connection.deinit();
+
+    connection.bindRequestDispatcher(options.dispatcher);
+    try connection.handle_connection();
+    return connection.takeCompletedResponses();
+}
 
 pub fn serveConnection(
     acceptor: *Acceptor,

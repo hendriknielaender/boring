@@ -6,30 +6,22 @@ const cert_pem = @embedFile("cert.pem");
 const key_pem = @embedFile("key.pem");
 const root_ca_pem = @embedFile("root-ca.pem");
 
-// Darwin in Zig 0.16 does not expose these through std.c.
-// The values are stable across all POSIX targets we care about.
-const AF_INET: c_uint = 2;
-const SOCK_STREAM: c_uint = 1;
-const SOL_SOCKET: c_int = 0xffff;
-const SO_REUSEADDR: c_int = 0x0004;
+const AF_INET: c_uint = c.AF.INET;
+const SOCK_STREAM: c_uint = c.SOCK.STREAM;
+const SOL_SOCKET: c_int = c.SOL.SOCKET;
+const SO_REUSEADDR: c_uint = c.SO.REUSEADDR;
 
 pub fn socket_addr(port: u16) c.sockaddr.in {
     return .{
-        .len = @sizeOf(c.sockaddr.in),
-        .family = AF_INET,
         .port = std.mem.nativeToBig(u16, port),
         .addr = std.mem.nativeToBig(u32, 0x7f000001),
-        .zero = .{ 0, 0, 0, 0, 0, 0, 0, 0 },
     };
 }
 
 pub fn socket_addr_any(port: u16) c.sockaddr.in {
     return .{
-        .len = @sizeOf(c.sockaddr.in),
-        .family = AF_INET,
         .port = std.mem.nativeToBig(u16, port),
         .addr = 0,
-        .zero = .{ 0, 0, 0, 0, 0, 0, 0, 0 },
     };
 }
 
