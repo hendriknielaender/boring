@@ -109,7 +109,7 @@ pub fn build(b: *Build) void {
 
     const source_dir = option_path(options.source_path) orelse b.path("deps/boringssl");
     const include_dir = resolve_include_path(b, source_dir, options.include_path);
-    const libraries = resolve_libraries(b, source_dir, options);
+    const libraries = resolve_libraries(b, target, source_dir, options);
     const boringssl_module = add_boringssl_module(
         b,
         target,
@@ -253,6 +253,7 @@ fn resolve_include_path(
 
 fn resolve_libraries(
     b: *Build,
+    target: ResolvedTarget,
     source_dir: LazyPath,
     options: BuildOptions,
 ) Libraries {
@@ -265,6 +266,7 @@ fn resolve_libraries(
 
     const build_dir = add_boringssl_build(
         b,
+        target,
         source_dir,
         options.cmake_build_type,
         options.fips,
@@ -278,6 +280,7 @@ fn resolve_libraries(
 
 fn add_boringssl_build(
     b: *Build,
+    target: ResolvedTarget,
     source_dir: LazyPath,
     cmake_build_type: []const u8,
     fips: bool,
@@ -289,6 +292,10 @@ fn add_boringssl_build(
     const build_dir = run.addOutputDirectoryArg("boringssl-build");
     run.addArg(cmake_build_type);
     run.addArg(if (fips) "true" else "false");
+    run.addArg(b.graph.zig_exe);
+    run.addArg(target.result.zigTriple(b.allocator) catch @panic("OOM"));
+    run.addArg(@tagName(target.result.os.tag));
+    run.addArg(@tagName(target.result.cpu.arch));
 
     return build_dir;
 }
