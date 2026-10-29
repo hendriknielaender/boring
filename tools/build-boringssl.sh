@@ -41,6 +41,13 @@ if [ "$fips" = true ] && [ "$(uname -s)" != Linux ]; then
     exit 64
 fi
 
+# glibc 2.43 returns `const void *` from memchr and friends for const input,
+# which BoringSSL's OPENSSL_memchr returns as `void *` under -Werror. GCC and
+# Clang name the warning differently; each ignores the other's -Wno- flag
+# once unknown warning options are silenced.
+c_flags="-Wno-unknown-warning-option -Wno-discarded-qualifiers"
+c_flags="$c_flags -Wno-incompatible-pointer-types-discards-qualifiers"
+
 if [ "$fips" = true ]; then
     cmake \
         -S "$source_dir" \
@@ -49,7 +56,7 @@ if [ "$fips" = true ]; then
         -DCMAKE_C_COMPILER=clang \
         -DCMAKE_CXX_COMPILER=clang++ \
         -DCMAKE_ASM_COMPILER=clang \
-        -DCMAKE_C_FLAGS=-Wno-unused-command-line-argument \
+        -DCMAKE_C_FLAGS="$c_flags -Wno-unused-command-line-argument" \
         -DFIPS=1
 elif [ "$target_os" = linux ] && { [ "$(uname -s)" != Linux ] || [ "$target_arch" != "$(uname -m)" ]; }; then
     mkdir -p "$build_dir/zig-toolchain"
@@ -89,6 +96,7 @@ EOF
         -DCMAKE_ASM_COMPILER="$build_dir/zig-toolchain/cc" \
         -DCMAKE_AR="$build_dir/zig-toolchain/ar" \
         -DCMAKE_RANLIB="$build_dir/zig-toolchain/ranlib" \
+        -DCMAKE_C_FLAGS="$c_flags" \
         -DCMAKE_SYSTEM_NAME=Linux \
         -DCMAKE_SYSTEM_PROCESSOR=x86_64 \
         -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY
@@ -96,7 +104,8 @@ else
     cmake \
         -S "$source_dir" \
         -B "$build_dir" \
-        -DCMAKE_BUILD_TYPE="$cmake_build_type"
+        -DCMAKE_BUILD_TYPE="$cmake_build_type" \
+        -DCMAKE_C_FLAGS="$c_flags"
 fi
 
 cmake \
