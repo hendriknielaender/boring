@@ -343,7 +343,7 @@ test "pkcs5 key derivation wrappers work" {
 
     var scrypt_key: [32]u8 = undefined;
     try boring.pkcs5.scrypt(&scrypt_key, "password", "NaCl", 1024, 8, 16, 32 * 1024 * 1024);
-    try std.testing.expect(!boring.memcmp.constantTimeEq(&scrypt_key, &[_]u8{0} ** 32));
+    try std.testing.expect(!boring.memcmp.constantTimeEq(&scrypt_key, &@as([32]u8, @splat(0))));
 }
 
 test "memory bio wrapper works" {
@@ -504,8 +504,8 @@ test "pkey can own an rsa key" {
 }
 
 test "pkey raw x25519 keys can derive a shared secret" {
-    const private_a = [_]u8{0x11} ** 32;
-    const private_b = [_]u8{0x22} ** 32;
+    const private_a: [32]u8 = @splat(0x11);
+    const private_b: [32]u8 = @splat(0x22);
 
     var key_a = try boring.pkey.PKey.fromRawPrivateKey(boring.pkey.Id.x25519, &private_a);
     defer key_a.deinit();
@@ -702,7 +702,7 @@ test "hash and hkdf wrappers work" {
         "salt",
         "info",
     );
-    try std.testing.expect(!boring.memcmp.constantTimeEq(&derived, &[_]u8{0} ** 32));
+    try std.testing.expect(!boring.memcmp.constantTimeEq(&derived, &@as([32]u8, @splat(0))));
 }
 
 test "aes block and key wrap wrappers work" {
@@ -735,8 +735,8 @@ test "aes block and key wrap wrappers work" {
 
 test "aead seal and open wrappers work" {
     const algorithm = boring.aead.Algorithm.aes128Gcm();
-    const key = [_]u8{0} ** 16;
-    const nonce = [_]u8{1} ** 12;
+    const key: [16]u8 = @splat(0);
+    const nonce: [12]u8 = @splat(1);
     const plaintext = "hello world";
     const aad = "record-header";
 
@@ -1206,7 +1206,7 @@ test "x509 cert loading and fingerprint" {
     const fingerprint_len = try cert.digest(boring.hash.MessageDigest.sha1(), &fingerprint);
     try std.testing.expectEqual(@as(usize, 20), fingerprint_len);
 
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     const actual_hex = std.fmt.bytesToHex(fingerprint, .lower);
     try std.testing.expectEqualStrings(expected, &actual_hex);
 }
@@ -1218,14 +1218,14 @@ test "x509 cert issue validity" {
     var not_before_buf: [boring.asn1.MaxPrintedTimeBytes]u8 = undefined;
     const not_before_len = try (try cert.asRef()).notBefore().print(&not_before_buf);
     try std.testing.expectEqualStrings(
-        "Aug 14 17:00:03 2016 GMT",
+        "Aug 12 21:37:58 2026 GMT",
         not_before_buf[0..not_before_len],
     );
 
     var not_after_buf: [boring.asn1.MaxPrintedTimeBytes]u8 = undefined;
     const not_after_len = try (try cert.asRef()).notAfter().print(&not_after_buf);
     try std.testing.expectEqualStrings(
-        "Aug 12 17:00:03 2026 GMT",
+        "Aug  9 21:37:58 2036 GMT",
         not_after_buf[0..not_after_len],
     );
 }
@@ -1681,7 +1681,7 @@ test "ssl peer certificate" {
     var fingerprint: [20]u8 = undefined;
     const fingerprint_len = try cert.digest(boring.hash.MessageDigest.sha1(), &fingerprint);
     try std.testing.expectEqual(@as(usize, 20), fingerprint_len);
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     const actual_hex = std.fmt.bytesToHex(fingerprint, .lower);
     try std.testing.expectEqualStrings(expected, &actual_hex);
 }
@@ -2177,7 +2177,7 @@ test "ssl pending" {
     server.ioCb(struct {
         fn write_ten_bytes(ssl: *boring.ssl.Ssl, fd: c_int) void {
             _ = fd;
-            var buf: [10]u8 = .{0} ** 10;
+            var buf: [10]u8 = @splat(0);
             _ = ssl.write(&buf) catch {};
         }
     }.write_ten_bytes);
@@ -2793,7 +2793,7 @@ test "ssl keying export" {
     var client = try client_builder.connect();
     defer client.deinit();
 
-    var buf: [32]u8 = .{1} ** 32;
+    var buf: [32]u8 = @splat(1);
     try (try client.sslRef()).exportKeyingMaterial(
         &buf,
         "EXPERIMENTAL test",
@@ -2924,7 +2924,7 @@ test "ssl cert verify callback receives correct certificate" {
     var client_builder = try running.client();
     defer client_builder.deinit();
     client_builder.ctx_builder.setVerify(boring.ssl.VerifyMode.peer);
-    const leaf_sha1 = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const leaf_sha1 = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     const root_sha1 = "c0cbdf7cdd03c9773e5468e1f6d2da7d5cbb1875";
     var callback_state = struct {
         called: bool = false,
@@ -2967,7 +2967,7 @@ test "ssl cert verify callback receives correct chain" {
     var client_builder = try running.clientWithRootCa();
     defer client_builder.deinit();
     client_builder.ctx_builder.setVerify(boring.ssl.VerifyMode.peer);
-    const leaf_sha1 = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const leaf_sha1 = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     const root_sha1 = "c0cbdf7cdd03c9773e5468e1f6d2da7d5cbb1875";
     var callback_state = struct {
         called: bool = false,
@@ -3380,7 +3380,7 @@ test "ssl custom verify callback" {
             }
         }.callback,
     );
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     try client_builder.ctx().setCustomVerifyCallback(
         boring.ssl.VerifyMode.peer,
         bool,
@@ -3418,7 +3418,7 @@ test "ssl custom verify ssl callback" {
     var ssl_builder = try client.builder();
     defer ssl_builder.deinit();
 
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     try ssl_builder.sslPtr().setCustomVerifyCallback(
         boring.ssl.VerifyMode.peer,
         bool,
@@ -3466,7 +3466,7 @@ test "ssl custom verify both callback" {
     var ssl_builder = try client.builder();
     defer ssl_builder.deinit();
 
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     try ssl_builder.sslPtr().setCustomVerifyCallback(
         boring.ssl.VerifyMode.peer,
         bool,
@@ -3639,10 +3639,10 @@ const TicketKeyTestState = struct {
     decryption_calls: u8 = 0,
 };
 
-const test_key_name: [16]u8 = .{5} ** 16;
-const test_cbc_iv: [16]u8 = .{1} ** 16;
-const test_aes_128_cbc_key: [16]u8 = .{2} ** 16;
-const test_hmac_key: [32]u8 = .{3} ** 32;
+const test_key_name: [16]u8 = @splat(5);
+const test_cbc_iv: [16]u8 = @splat(1);
+const test_aes_128_cbc_key: [16]u8 = @splat(2);
+const test_hmac_key: [32]u8 = @splat(3);
 
 fn ticket_key_callback_success(
     state: *TicketKeyTestState,
@@ -3658,8 +3658,8 @@ fn ticket_key_callback_success(
 
     if (encrypt) {
         state.encryption_calls += 1;
-        std.debug.assert(std.mem.eql(u8, key_name, &[_]u8{0} ** 16));
-        std.debug.assert(std.mem.eql(u8, iv, &[_]u8{0} ** 16));
+        std.debug.assert(std.mem.eql(u8, key_name, &@as([16]u8, @splat(0))));
+        std.debug.assert(std.mem.eql(u8, iv, &@as([16]u8, @splat(0))));
 
         @memcpy(key_name, &test_key_name);
         @memcpy(iv, &test_cbc_iv);
@@ -3702,8 +3702,8 @@ fn ticket_key_callback_noop(
 
     if (encrypt) {
         state.encryption_calls += 1;
-        std.debug.assert(std.mem.eql(u8, key_name, &[_]u8{0} ** 16));
-        std.debug.assert(std.mem.eql(u8, iv, &[_]u8{0} ** 16));
+        std.debug.assert(std.mem.eql(u8, key_name, &@as([16]u8, @splat(0))));
+        std.debug.assert(std.mem.eql(u8, iv, &@as([16]u8, @splat(0))));
 
         @memcpy(key_name, &test_key_name);
         @memcpy(iv, &test_cbc_iv);
@@ -4026,7 +4026,7 @@ test "ssl verify callback fingerprint on ssl" {
     var ssl_builder = try client.builder();
     defer ssl_builder.deinit();
 
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     try ssl_builder.sslPtr().setVerifyCallback(
         boring.ssl.VerifyMode.peer,
         bool,

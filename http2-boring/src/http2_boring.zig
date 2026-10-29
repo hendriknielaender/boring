@@ -6,10 +6,7 @@ pub const AlpnProtocol = "h2";
 pub const TcpBufferSize: usize = boring.async.BioStreamBufferSize;
 pub const TlsBufferSize: usize = boring.async.BioStreamBufferSize;
 
-pub const ServeConnectionOptions = struct {
-    dispatcher: http2.RequestDispatcher,
-    stream_storage: ?*http2.Connection.StreamStorage = null,
-};
+pub const ServeConnectionOptions = http2.ServeConnectionOptions;
 
 pub const Acceptor = struct {
     tls_acceptor: boring.async.AsyncTlsAcceptor,
@@ -87,14 +84,10 @@ pub const Connection = struct {
         self.state = .empty;
     }
 
-    pub fn serve(
-        self: *Connection,
-        allocator: std.mem.Allocator,
-        options: ServeConnectionOptions,
-    ) !u32 {
+    pub fn serve(self: *Connection, options: ServeConnectionOptions) !u32 {
         std.debug.assert(self.state == .tls);
 
-        return serveHttp2Connection(allocator, self.reader(), self.writer(), options);
+        return http2.serveConnection(self.reader(), self.writer(), options);
     }
 
     pub fn read(self: *Connection, output: []u8) boring.BoringError!usize {
@@ -159,46 +152,8 @@ pub const Connection = struct {
     }
 };
 
-fn serveHttp2Connection(
-    allocator: std.mem.Allocator,
-    reader: *std.Io.Reader,
-    writer: *std.Io.Writer,
-    options: ServeConnectionOptions,
-) !u32 {
-    if (@hasDecl(http2, "serveConnection")) {
-        return http2.serveConnection(
-            allocator,
-            reader,
-            writer,
-            .{
-                .dispatcher = options.dispatcher,
-                .stream_storage = options.stream_storage,
-            },
-        );
-    }
-
-    var connection: http2.Connection = undefined;
-    if (options.stream_storage) |stream_storage| {
-        try http2.Connection.initServerInPlace(
-            &connection,
-            stream_storage,
-            allocator,
-            reader,
-            writer,
-        );
-    } else {
-        connection = try http2.Connection.init(allocator, reader, writer, true);
-    }
-    defer connection.deinit();
-
-    connection.bindRequestDispatcher(options.dispatcher);
-    try connection.handle_connection();
-    return connection.takeCompletedResponses();
-}
-
 pub fn serveConnection(
     acceptor: *Acceptor,
-    allocator: std.mem.Allocator,
     io: std.Io,
     tcp_stream: std.Io.net.Stream,
     options: ServeConnectionOptions,
@@ -207,7 +162,7 @@ pub fn serveConnection(
     defer connection.deinit(io);
 
     try acceptor.accept(&connection, io, tcp_stream);
-    return connection.serve(allocator, options);
+    return connection.serve(options);
 }
 
 pub fn isHttp2Alpn(selected_alpn: ?[]const u8) bool {

@@ -10,7 +10,7 @@ pub const Mode = enum(c_int) {
     encrypt = 1,
 
     fn raw(self: Mode) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 

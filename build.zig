@@ -361,14 +361,14 @@ fn add_format_steps(b: *Build) void {
     };
 
     const fmt_check = b.addFmt(.{
-        .paths = paths,
+        .paths = b.pathList(paths),
         .check = true,
     });
     const fmt_check_step = b.step("fmt-check", "Check Zig formatting");
     fmt_check_step.dependOn(&fmt_check.step);
 
     const fmt = b.addFmt(.{
-        .paths = paths,
+        .paths = b.pathList(paths),
         .check = false,
     });
     const fmt_step = b.step("fmt", "Format Zig files");
@@ -619,14 +619,18 @@ fn read_packed_git_ref(b: *Build, git_dir: []const u8, ref_name: []const u8) ![]
 }
 
 fn read_file_alloc(b: *Build, path: []const u8, limit: u32) ![]u8 {
-    const root = if (std.fs.path.isAbsolute(path)) std.Io.Dir.cwd() else b.build_root.handle;
+    const path_absolute = std.fs.path.isAbsolute(path);
+    const path_resolved = if (path_absolute) path else try b.root.joinString(b.allocator, path);
 
-    return root.readFileAlloc(
+    const contents = try std.Io.Dir.cwd().readFileAlloc(
         b.graph.io,
-        path,
+        path_resolved,
         b.allocator,
         .limited(@intCast(limit)),
     );
+    // The configure phase is cached, so it must rerun when a file read here changes.
+    if (!path_absolute) b.dependOnFileContents(b.path(path));
+    return contents;
 }
 
 fn is_git_revision(value: []const u8) bool {

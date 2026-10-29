@@ -969,7 +969,7 @@ pub const BasicConstraints = struct {
         }
         if (self.path_length) |plen| {
             var num_buf: [32]u8 = undefined;
-            const plen_str = std.fmt.bufPrintZ(&num_buf, ",pathlen:{}", .{plen}) catch {
+            const plen_str = std.fmt.bufPrint(&num_buf, ",pathlen:{}", .{plen}) catch {
                 return error.Overflow;
             };
             try copy_fragment(&buffer, &written, plen_str);
@@ -1165,7 +1165,7 @@ pub const GeneralNameRef = struct {
     }
 
     pub fn tag(self: GeneralNameRef) GeneralNameTag {
-        return @enumFromInt(self.ptr.type);
+        return @fromBackingInt(@intCast(self.ptr.type));
     }
 
     pub fn dnsName(self: GeneralNameRef) ?[]const u8 {
