@@ -11,7 +11,7 @@ pub const MsbOption = enum(c_int) {
     twoOnes = sys.BN_RAND_TOP_TWO,
 
     fn raw(self: MsbOption) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 

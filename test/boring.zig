@@ -343,7 +343,7 @@ test "pkcs5 key derivation wrappers work" {
 
     var scrypt_key: [32]u8 = undefined;
     try boring.pkcs5.scrypt(&scrypt_key, "password", "NaCl", 1024, 8, 16, 32 * 1024 * 1024);
-    try std.testing.expect(!boring.memcmp.constantTimeEq(&scrypt_key, &[_]u8{0} ** 32));
+    try std.testing.expect(!boring.memcmp.constantTimeEq(&scrypt_key, &@as([32]u8, @splat(0))));
 }
 
 test "memory bio wrapper works" {
@@ -504,8 +504,8 @@ test "pkey can own an rsa key" {
 }
 
 test "pkey raw x25519 keys can derive a shared secret" {
-    const private_a = [_]u8{0x11} ** 32;
-    const private_b = [_]u8{0x22} ** 32;
+    const private_a: [32]u8 = @splat(0x11);
+    const private_b: [32]u8 = @splat(0x22);
 
     var key_a = try boring.pkey.PKey.fromRawPrivateKey(boring.pkey.Id.x25519, &private_a);
     defer key_a.deinit();
@@ -702,7 +702,7 @@ test "hash and hkdf wrappers work" {
         "salt",
         "info",
     );
-    try std.testing.expect(!boring.memcmp.constantTimeEq(&derived, &[_]u8{0} ** 32));
+    try std.testing.expect(!boring.memcmp.constantTimeEq(&derived, &@as([32]u8, @splat(0))));
 }
 
 test "aes block and key wrap wrappers work" {
@@ -735,8 +735,8 @@ test "aes block and key wrap wrappers work" {
 
 test "aead seal and open wrappers work" {
     const algorithm = boring.aead.Algorithm.aes128Gcm();
-    const key = [_]u8{0} ** 16;
-    const nonce = [_]u8{1} ** 12;
+    const key: [16]u8 = @splat(0);
+    const nonce: [12]u8 = @splat(1);
     const plaintext = "hello world";
     const aad = "record-header";
 
@@ -2177,7 +2177,7 @@ test "ssl pending" {
     server.ioCb(struct {
         fn write_ten_bytes(ssl: *boring.ssl.Ssl, fd: c_int) void {
             _ = fd;
-            var buf: [10]u8 = .{0} ** 10;
+            var buf: [10]u8 = @splat(0);
             _ = ssl.write(&buf) catch {};
         }
     }.write_ten_bytes);
@@ -2793,7 +2793,7 @@ test "ssl keying export" {
     var client = try client_builder.connect();
     defer client.deinit();
 
-    var buf: [32]u8 = .{1} ** 32;
+    var buf: [32]u8 = @splat(1);
     try (try client.sslRef()).exportKeyingMaterial(
         &buf,
         "EXPERIMENTAL test",
@@ -3639,10 +3639,10 @@ const TicketKeyTestState = struct {
     decryption_calls: u8 = 0,
 };
 
-const test_key_name: [16]u8 = .{5} ** 16;
-const test_cbc_iv: [16]u8 = .{1} ** 16;
-const test_aes_128_cbc_key: [16]u8 = .{2} ** 16;
-const test_hmac_key: [32]u8 = .{3} ** 32;
+const test_key_name: [16]u8 = @splat(5);
+const test_cbc_iv: [16]u8 = @splat(1);
+const test_aes_128_cbc_key: [16]u8 = @splat(2);
+const test_hmac_key: [32]u8 = @splat(3);
 
 fn ticket_key_callback_success(
     state: *TicketKeyTestState,
@@ -3658,8 +3658,8 @@ fn ticket_key_callback_success(
 
     if (encrypt) {
         state.encryption_calls += 1;
-        std.debug.assert(std.mem.eql(u8, key_name, &[_]u8{0} ** 16));
-        std.debug.assert(std.mem.eql(u8, iv, &[_]u8{0} ** 16));
+        std.debug.assert(std.mem.eql(u8, key_name, &@as([16]u8, @splat(0))));
+        std.debug.assert(std.mem.eql(u8, iv, &@as([16]u8, @splat(0))));
 
         @memcpy(key_name, &test_key_name);
         @memcpy(iv, &test_cbc_iv);
@@ -3702,8 +3702,8 @@ fn ticket_key_callback_noop(
 
     if (encrypt) {
         state.encryption_calls += 1;
-        std.debug.assert(std.mem.eql(u8, key_name, &[_]u8{0} ** 16));
-        std.debug.assert(std.mem.eql(u8, iv, &[_]u8{0} ** 16));
+        std.debug.assert(std.mem.eql(u8, key_name, &@as([16]u8, @splat(0))));
+        std.debug.assert(std.mem.eql(u8, iv, &@as([16]u8, @splat(0))));
 
         @memcpy(key_name, &test_key_name);
         @memcpy(iv, &test_cbc_iv);

@@ -21,7 +21,7 @@ pub const X509ObjectRef = struct {
     }
 
     pub fn objectType(self: X509ObjectRef) X509ObjectType {
-        return @enumFromInt(sys.X509_OBJECT_get_type(self.ptr));
+        return @fromBackingInt(@intCast(sys.X509_OBJECT_get_type(self.ptr)));
     }
 
     pub fn certificate(self: X509ObjectRef) ?x509_mod.X509Ref {

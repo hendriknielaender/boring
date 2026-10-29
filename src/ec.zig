@@ -13,7 +13,7 @@ pub const PointConversionForm = enum(sys.point_conversion_form_t) {
     hybrid = sys.POINT_CONVERSION_HYBRID,
 
     fn raw(self: PointConversionForm) sys.point_conversion_form_t {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -22,7 +22,7 @@ pub const Asn1Flag = enum(c_int) {
     namedCurve = sys.OPENSSL_EC_NAMED_CURVE,
 
     fn raw(self: Asn1Flag) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -376,5 +376,5 @@ pub const EcKey = struct {
 };
 
 comptime {
-    std.debug.assert(@intFromEnum(PointConversionForm.compressed) != 0);
+    std.debug.assert(@backingInt(PointConversionForm.compressed) != 0);
 }

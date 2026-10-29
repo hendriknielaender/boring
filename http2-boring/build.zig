@@ -89,14 +89,14 @@ fn add_format_steps(b: *std.Build) void {
     };
 
     const fmt_check = b.addFmt(.{
-        .paths = paths,
+        .paths = b.pathList(paths),
         .check = true,
     });
     const fmt_check_step = b.step("fmt-check", "Check Zig formatting");
     fmt_check_step.dependOn(&fmt_check.step);
 
     const fmt = b.addFmt(.{
-        .paths = paths,
+        .paths = b.pathList(paths),
         .check = false,
     });
     const fmt_step = b.step("fmt", "Format Zig files");

@@ -730,7 +730,7 @@ pub const SslAlert = enum(u8) {
     echRequired = @intCast(sys.SSL_AD_ECH_REQUIRED),
 
     pub fn raw(self: SslAlert) u8 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1182,7 +1182,7 @@ pub const FileType = enum(c_int) {
     asn1 = sys.SSL_FILETYPE_ASN1,
 
     pub fn raw(self: FileType) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -2894,7 +2894,7 @@ fn select_certificate_callback_bridge(
             };
 
             var client_hello = ClientHello.fromRaw(raw_client_hello);
-            return @intFromEnum(callback(context, &client_hello));
+            return @backingInt(callback(context, &client_hello));
         }
     };
 }
@@ -3781,7 +3781,7 @@ fn ticket_key_callback_bridge(
             var hmac_ctx_ref = hmac_mod.HmacCtxRef{ .ptr = hmac_ctx.? };
             var ssl_ref = SslRef.fromRaw(ssl);
 
-            return @intFromEnum(callback(
+            return @backingInt(callback(
                 context,
                 &ssl_ref,
                 key_name_slice,
@@ -3803,15 +3803,15 @@ comptime {
     std.debug.assert(MaxSessionIdBytes >= 32);
     std.debug.assert(MaxSessionBytes >= 16 * 1024);
     std.debug.assert(MaxSessionCacheEntries >= 16);
-    std.debug.assert(@intFromEnum(PrivateKeyResult.success) == 0);
-    std.debug.assert(@intFromEnum(PrivateKeyResult.retry) == 1);
-    std.debug.assert(@intFromEnum(PrivateKeyResult.failure) == 2);
-    std.debug.assert(@intFromEnum(SelectCertificateResult.retry) == 0);
-    std.debug.assert(@intFromEnum(SelectCertificateResult.success) == 1);
-    std.debug.assert(@intFromEnum(SelectCertificateResult.failure) == -1);
-    std.debug.assert(@intFromEnum(SelectCertificateResult.disableEch) == -2);
-    std.debug.assert(@intFromEnum(VerifyResult.ok) == 0);
-    std.debug.assert(@intFromEnum(VerifyResult.invalid) == 1);
-    std.debug.assert(@intFromEnum(VerifyResult.retry) == 2);
+    std.debug.assert(@backingInt(PrivateKeyResult.success) == 0);
+    std.debug.assert(@backingInt(PrivateKeyResult.retry) == 1);
+    std.debug.assert(@backingInt(PrivateKeyResult.failure) == 2);
+    std.debug.assert(@backingInt(SelectCertificateResult.retry) == 0);
+    std.debug.assert(@backingInt(SelectCertificateResult.success) == 1);
+    std.debug.assert(@backingInt(SelectCertificateResult.failure) == -1);
+    std.debug.assert(@backingInt(SelectCertificateResult.disableEch) == -2);
+    std.debug.assert(@backingInt(VerifyResult.ok) == 0);
+    std.debug.assert(@backingInt(VerifyResult.invalid) == 1);
+    std.debug.assert(@backingInt(VerifyResult.retry) == 2);
     std.debug.assert(SslAlert.internalError.raw() == sys.SSL_AD_INTERNAL_ERROR);
 }

@@ -23,7 +23,7 @@ pub const Padding = enum(c_int) {
     }
 
     pub fn raw(self: Padding) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
