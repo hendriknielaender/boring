@@ -1206,7 +1206,7 @@ test "x509 cert loading and fingerprint" {
     const fingerprint_len = try cert.digest(boring.hash.MessageDigest.sha1(), &fingerprint);
     try std.testing.expectEqual(@as(usize, 20), fingerprint_len);
 
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     const actual_hex = std.fmt.bytesToHex(fingerprint, .lower);
     try std.testing.expectEqualStrings(expected, &actual_hex);
 }
@@ -1218,14 +1218,14 @@ test "x509 cert issue validity" {
     var not_before_buf: [boring.asn1.MaxPrintedTimeBytes]u8 = undefined;
     const not_before_len = try (try cert.asRef()).notBefore().print(&not_before_buf);
     try std.testing.expectEqualStrings(
-        "Aug 14 17:00:03 2016 GMT",
+        "Aug 12 21:37:58 2026 GMT",
         not_before_buf[0..not_before_len],
     );
 
     var not_after_buf: [boring.asn1.MaxPrintedTimeBytes]u8 = undefined;
     const not_after_len = try (try cert.asRef()).notAfter().print(&not_after_buf);
     try std.testing.expectEqualStrings(
-        "Aug 12 17:00:03 2026 GMT",
+        "Aug  9 21:37:58 2036 GMT",
         not_after_buf[0..not_after_len],
     );
 }
@@ -1681,7 +1681,7 @@ test "ssl peer certificate" {
     var fingerprint: [20]u8 = undefined;
     const fingerprint_len = try cert.digest(boring.hash.MessageDigest.sha1(), &fingerprint);
     try std.testing.expectEqual(@as(usize, 20), fingerprint_len);
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     const actual_hex = std.fmt.bytesToHex(fingerprint, .lower);
     try std.testing.expectEqualStrings(expected, &actual_hex);
 }
@@ -2924,7 +2924,7 @@ test "ssl cert verify callback receives correct certificate" {
     var client_builder = try running.client();
     defer client_builder.deinit();
     client_builder.ctx_builder.setVerify(boring.ssl.VerifyMode.peer);
-    const leaf_sha1 = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const leaf_sha1 = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     const root_sha1 = "c0cbdf7cdd03c9773e5468e1f6d2da7d5cbb1875";
     var callback_state = struct {
         called: bool = false,
@@ -2967,7 +2967,7 @@ test "ssl cert verify callback receives correct chain" {
     var client_builder = try running.clientWithRootCa();
     defer client_builder.deinit();
     client_builder.ctx_builder.setVerify(boring.ssl.VerifyMode.peer);
-    const leaf_sha1 = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const leaf_sha1 = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     const root_sha1 = "c0cbdf7cdd03c9773e5468e1f6d2da7d5cbb1875";
     var callback_state = struct {
         called: bool = false,
@@ -3380,7 +3380,7 @@ test "ssl custom verify callback" {
             }
         }.callback,
     );
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     try client_builder.ctx().setCustomVerifyCallback(
         boring.ssl.VerifyMode.peer,
         bool,
@@ -3418,7 +3418,7 @@ test "ssl custom verify ssl callback" {
     var ssl_builder = try client.builder();
     defer ssl_builder.deinit();
 
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     try ssl_builder.sslPtr().setCustomVerifyCallback(
         boring.ssl.VerifyMode.peer,
         bool,
@@ -3466,7 +3466,7 @@ test "ssl custom verify both callback" {
     var ssl_builder = try client.builder();
     defer ssl_builder.deinit();
 
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     try ssl_builder.sslPtr().setCustomVerifyCallback(
         boring.ssl.VerifyMode.peer,
         bool,
@@ -4026,7 +4026,7 @@ test "ssl verify callback fingerprint on ssl" {
     var ssl_builder = try client.builder();
     defer ssl_builder.deinit();
 
-    const expected = "59172d9313e84459bcff27f967e79e6e9217e584";
+    const expected = "585e3a58acfd3b4e5e2825659407244ddd93539c";
     try ssl_builder.sslPtr().setVerifyCallback(
         boring.ssl.VerifyMode.peer,
         bool,
