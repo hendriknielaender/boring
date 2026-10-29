@@ -16,10 +16,14 @@ var connection: http2_boring.Connection = .{};
 defer connection.deinit(io);
 
 try acceptor.accept(&connection, io, tcp_stream);
-try connection.serve(allocator, .{
+_ = try connection.serve(.{
     .dispatcher = dispatcher,
+    .stream_storage = &stream_storage,
 });
 ```
+
+`stream_storage` is caller-owned `http2.Connection.StreamStorage`, typically
+taken from a startup-sized connection pool, so serving allocates nothing.
 
 `Acceptor.initWithBuilder` installs the server ALPN selector before consuming
 the `boring.ssl.ContextBuilder`. Connections that do not negotiate `h2` return
